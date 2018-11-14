@@ -12,8 +12,6 @@ from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 
 
-aaa = 0
-
 
 ##学習用データの読み込み
 fname = "00_LearnData.csv"
@@ -86,40 +84,3 @@ for lp in range(1, 13):
 
 #cat_var = rdat.dtypes.loc[rdat.dtypes=='object'].index
 #print(cat_var)
-
-
-if aaa == 1:
-    # HTML データを取得する
-    url = "https://stride.get-luck.jp/member/lap_character/2018/20181103/20181103E.html?idpm=72076a00a8f68388b3c0fcd3f2057c84"
-    #url = input('>> ')
-    #csvfile = input('hozon name>> ')
-    res = requests.get(url)
-    res.encoding = res.apparent_encoding
-    content = res.text
-    tables = get_tables(content)
-
-    for dmy in tables:
-        rows = parse_table(dmy)
-        if not rows[0]:
-            continue
-        df2 = pd.DataFrame(rows[1:], columns=rows[0])
-
-        data = df2
-        print(len(data))
-        X = data.drop(['ラップ適性', 'ラップキャラ', '合計値', '合計値順位'], axis=1)
-        print(X)
-        #X = X.iloc[:,3:15]
-        X = X.iloc[:,[8,11]]
-        print(X)
-        #Y = data['合計値順位']
-
-        model1 = KMeans(n_clusters=len(data), random_state=1)
-        #model = DecisionTreeClassifier(max_depth=3, random_state=0)
-        #model.fit(X, Y)
-        model1.fit(X)
-        Y1 = model1.labels_
-        #tmp = model.predict(X)
-        print(Y1)
-        X['何か'] = Y1
-        print(X)
-        X.to_csv("hoge.csv", encoding="shift_jis", index=False, mode="a")
