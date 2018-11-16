@@ -1,7 +1,6 @@
 import requests
 from u_def import get_tables as gtbl
 from u_def import parse_table as ptbl
-from u_def import table2csv as tbl2csv
 
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -21,7 +20,6 @@ csvfile = ftmp + 'EWL_data.csv'
 print(csvfile)
 
 # 東西＋ローカル
-# 2会場の時はどうしよう？また今度考える
 tablst = ['W', 'E', 'L']
 #print(tablst)
 for kaijou in tablst:
