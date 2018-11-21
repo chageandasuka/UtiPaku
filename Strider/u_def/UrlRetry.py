@@ -11,7 +11,7 @@ def UrlRetry(url):
     # Webアクセスのリトライ回数を指定する
     retry_max_count = 5
     retry_count = 0
-    sleep_time = 1
+    sleep_time = 5
 
     #print("url={}".format(url))
     try:
@@ -31,11 +31,13 @@ def UrlRetry(url):
                 tmp = h1t[0].text
                 tmp = tmp.replace('\n','')
                 tmp = tmp.replace('\t','')
-                print("  競馬ラボ:{}".format(tmp))
+                #print("  競馬ラボ:{}".format(tmp))
                 # HTMLパーサーでパースする
                 return content
-            except IndexError:
-                print("retry_count:{}".format(retry_count))
+            #except IndexError:
+            #    print("タイムアウトじゃないリトライ:{}".format(retry_count))
+            except requests.exceptions.RequestException as err:
+                print("{}:{}".format(type(err), retry_count))
 
             # sleep_time[sec]何もしない
             sleep(sleep_time)
