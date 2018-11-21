@@ -2,6 +2,7 @@ import requests
 from u_def import get_tables as gtbl
 from u_def import parse_table as ptbl
 from u_def import keibaLab_CourseTable as klabtbl
+from u_def import UrlRetry as urlget
 
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -22,7 +23,7 @@ csvfile = ftmp + 'EWL_data.csv'
 print(csvfile)
 
 # 東西＋ローカル
-tablst = ['W', 'E', 'L']
+tablst = ['E', 'W', 'L']
 #print(tablst)
 for kaijou in tablst:
     url = u_tmp[0:len(u_tmp)-1] + kaijou + idpm[0]
@@ -41,7 +42,7 @@ for kaijou in tablst:
 
     soup = BeautifulSoup(content, "lxml")
     # 全ての<div>...</div>を取得
-    div_data = soup.find_all("div", attrs={"class", "headding03"})
+    race_str = soup.find_all("div", attrs={"class", "headding03"})
 
     # table 要素を取得する
     # HTML 中のすべての table 要素が表として使われているとも
@@ -60,14 +61,54 @@ for kaijou in tablst:
         if not rows[0]:
             continue
         df2 = pd.DataFrame(rows[1:], columns=rows[0])
-        #print(div_data[hoge].text)
-        # レース情報をDataFrameに追加
-        df2['レース情報'] = div_data[hoge].text
+        ##ここから　コース情報分割処理
+        # レース情報に含まれる全角スペースを基準にして分割する
+        #   0              1                  2            3
+        #['中山1R', '３歳未勝利３歳(馬齢)', 'ダ1200ｍ', '10:10発走']
+        # ひとまず右記の形式で出力する。　例：中山, 1R, ダ, 1200
+        # 0は会場名とレース番号を分ける
+        # 2はコースと距離を分ける
+        race_tmp = re.split('　', race_str[hoge].text)
+        print(race_tmp)
 
+        # 東京と1R分割
+        tmpstr = race_tmp[0]
+        kaijou = tmpstr[:2]
+        race_num = tmpstr[2:]
+
+        tmpstr = race_tmp[2]
+        course = tmpstr[:1]
+        distance = tmpstr[1:-1]
+        ##########################################
+        # レース情報をDataFrameに追加
+        #df2['レース情報'] = race_str[hoge].text
         # DataFrame末尾に追加したレース情報を先頭に移動する
+        #cols = list(df2.columns.values)
+        #cols = ['レース情報']  + [col for col in df2 if col != 'レース情報']
+        #df2 = df2[cols]
+        df2['日付'] = ftmp
+
+        df2['会場'] = kaijou
+        df2['レース'] = race_num
+        df2['コース'] = course
+        df2['距離'] = distance
+
         cols = list(df2.columns.values)
-        cols = ['レース情報']  + [col for col in df2 if col != 'レース情報']
+        cols = ['距離']+ [col for col in df2 if col != '距離']
         df2 = df2[cols]
+        cols = list(df2.columns.values)
+        cols = ['コース']+ [col for col in df2 if col != 'コース']
+        df2 = df2[cols]
+        cols = list(df2.columns.values)
+        cols = ['レース']+ [col for col in df2 if col != 'レース']
+        df2 = df2[cols]
+        cols = list(df2.columns.values)
+        cols = ['会場']+ [col for col in df2 if col != '会場']
+        df2 = df2[cols]
+        cols = list(df2.columns.values)
+        cols = ['日付']+ [col for col in df2 if col != '日付']
+        df2 = df2[cols]
+        ##ここまで　コース情報分割処理
 
         # for Debug
         # print(df2)
@@ -85,10 +126,15 @@ for kaijou in tablst:
         if sw_KeibaLab == 1:
 
             # 競馬場名抽出 → 競馬ラボ会場Noへ変換
-            course = df2['レース情報'].loc[0]     # 競馬場名抽出 (先頭データより判定)
-            print(df2['レース情報'].loc[0])
-            course = course[0:2]                    # ↑(左から2文字抽出)
+            #course = df2['レース情報'].loc[0]     # 競馬場名抽出 (先頭データより判定)
+            #print(df2['レース情報'].loc[0])
+            #course = course[0:2]                    # ↑(左から2文字抽出)
+            course = df2['会場'].loc[0]
+
             course_no = klabtbl.keibaLab_CourseTables(course)
+            # 会場IDを数字で戻すようにしたためここで数字→文字列に変換して2桁表示
+            course_no = str(course_no + 1).zfill(2)
+            print("  会場 = {}, 会場ID = {}".format(course, course_no))
 
             # 競馬ラボURL作成
             url2 = "https://www.keibalab.jp/db/race/" + ftmp + course_no + "01/"
@@ -104,18 +150,20 @@ for kaijou in tablst:
 
             url = url2 + race + "/"
 
-            res = requests.get(url)
+            #res = requests.get(url)
+
+            content = urlget.UrlRetry(url)
             # 競馬ラボがたまにレスポンス悪くて取れない時があるのでリトライを入れたいわけで。。。
-            res.encoding = res.apparent_encoding
-            content = res.text
+            #res.encoding = res.apparent_encoding
+            #content = res.text
 
             # ここから趣味の範囲 #####################################################
-            bs = BeautifulSoup(content, "lxml")
-            h1t = bs.find_all("h1", attrs={"class", "raceTitle fL"})
-            tmp = h1t[0].text
-            tmp = tmp.replace('\n','')
-            tmp = tmp.replace('\t','')
-            print(url, " : ", tmp)
+            #bs = BeautifulSoup(content, "lxml")
+            #h1t = bs.find_all("h1", attrs={"class", "raceTitle fL"})
+            #tmp = h1t[0].text
+            #tmp = tmp.replace('\n','')
+            #tmp = tmp.replace('\t','')
+            #print(url, " : ", tmp)
             # ここまで趣味の範囲 #####################################################
 
             # table 要素を取得する
