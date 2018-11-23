@@ -57,13 +57,14 @@ t_DataName = "00_test01.csv"
 learn_DataFrame = pd.read_csv(l_DataName, encoding="shift_jis")
 # 予想結果CSV出力用データ読込み(ベース)
 test_DataFrame = pd.read_csv(t_DataName, encoding="shift_jis")
-
+## ダミー用に列を追加。この列は後で消す
+test_DataFrame["着"] = 0
 
 # 不要行を削除
 # if learn_DataFrame["着"].str.endswith("中止").sum() > 0:                           # 中止文字有無判定
 learn_DataFrame = learn_DataFrame[ learn_DataFrame["着"] != "中止" ]                             # 中止行削除
 # if learn_DataFrame["着"].str.endswith("除外").sum() > 0:                           # 除外文字有無判定
-learn_DataFrame = learn_DataFrame[ learn_DataFrame["着"] != "除外" ]                             # 除外行削除
+learn_DataFrame = learn_DataFrame[ learn_DataFrame["着"] != "除" ]                             # 除外行削除
 # if learn_DataFrame["着"].str.endswith("取消").sum() > 0:                           # 取消文字有無判定
 learn_DataFrame = learn_DataFrame[ learn_DataFrame["着"] != "取消" ]                             # 取消行削除
 
@@ -103,7 +104,7 @@ if sw_Kikaichang_ANAL == 1:
                           "仕上指数",
                           "ＳＴ指数順位",
                           "仕上指数順位",
-                          "単勝",
+                          #"単勝",
                           "着"
                         ]
 
@@ -116,7 +117,7 @@ if sw_Kikaichang_ANAL == 1:
                           "追走力順位",
                           "持久力順位",
                           "持続力順位",
-                          "単勝",
+                          #"単勝",
                           "着"
                         ]
 
@@ -125,7 +126,7 @@ if sw_Kikaichang_ANAL == 1:
                           "展開ゴール差",
                           "合計値",
                           "合計値順位",
-                          "単勝",
+                          #"単勝",
                           "着"
                         ]
 
@@ -135,7 +136,7 @@ if sw_Kikaichang_ANAL == 1:
                           "ＳＴ指数順位",
                           "仕上指数",
                           "仕上指数順位",
-                          "単勝",
+                          #"単勝",
                           "着"
                         ]
 
@@ -156,7 +157,7 @@ if sw_Kikaichang_ANAL == 1:
     print(learn_DataFrame.head())
 
     # 不要リスト削除
-    factor_ANA_list01.remove("単勝")   # 単勝ヘッダ削除
+    #factor_ANA_list01.remove("単勝")   # 単勝ヘッダ削除
 
     # 機械学習実施(SVM)  (引数：学習用データフレーム, 予想用データフレーム, 学習&教師用ファクターリスト)
     l_result = lrn_svm.svm_func( learn_DataFrame, test_DataFrame, factor_ANA_list01 )
@@ -180,6 +181,9 @@ if sw_Kikaichang_ANAL == 1:
     l_result = lrn_svm.svm_func( learn_DataFrame, test_DataFrame, factor_ANA_list04 )
     # 予想欄としてデータフレームに追加(右端)
     test_DataFrame['穴予想4'] = l_result
+
+    # ダミー列の削除
+    test_DataFrame = test_DataFrame.drop(columns="着")
 
 # CSVファイルへ結果出力
 test_DataFrame.to_csv("01_rslt.csv", encoding="shift_jis", index=False, mode="a")

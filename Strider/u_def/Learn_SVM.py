@@ -77,6 +77,7 @@ def svm_func( learn_DataFrame, test_DataFrame, factor_list ):
     df_t = df[ factor_list ]
     df_t = df_t.drop(columns=["着"])   # 不要列削除
 
+    df_t = df_t.fillna(0)   # 欠損セル（障害レースとか）のゼロ埋め（多分影響しないはず）
 #    if df_t("").sum() > 0:  # 空白セル判定
 #        print("テストデータに空白があります")
 #        print("テストデータを修正してください")
