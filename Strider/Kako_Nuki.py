@@ -1,15 +1,18 @@
 import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+import re
+import sys
+
 from u_def import get_tables as gtbl
 from u_def import parse_table as ptbl
 from u_def import keibaLab_CourseTable as klabtbl
 from u_def import UrlRetry as urlget
+from u_def import get_tyokuten as getyoku
 
-import pandas as pd
-from bs4 import BeautifulSoup
-import re
 
 # データシートのあるアドレスの固定文字列
-CNST_URL = "https://stride.get-luck.jp/member/lap_character"
+CNST_URL = "https://stride.get-luck.jp/member/"
 # 競馬ラボのURL
 CNST_LABURL = "https://www.keibalab.jp/db/race/"
 
@@ -51,11 +54,12 @@ for d in range(1, td.days):
     datestr = datestr + timedelta(days=1)
     # yyyymmdd形式へ変換
     yyyymmdd = datestr.strftime('%Y%m%d')
+    print(yyyymmdd)
     # 東西ローカル記号リストのfor
     for s in wel:
         # URL文字列作成
         # http://~~~ + /2018/ + yyyymmdd + / + yyyymmdd + {'W','E','L'} + .html?idpm=0000
-        url = CNST_URL + ydir[0] + yyyymmdd + '/' + yyyymmdd + s + idpm[0]
+        url = CNST_URL + 'lap_character' + ydir[0] + yyyymmdd + '/' + yyyymmdd + s + idpm[0]
         #print(url)
 
         ##### URLへリクエスト #####
@@ -68,7 +72,7 @@ for d in range(1, td.days):
         # HTTPステータスコード 404
         if  htstcd == 404:
             print(str(htstcd) + ':' + yyyymmdd + s)
-            break
+            continue
 
         print(yyyymmdd + s + " データシート取得")
         res.encoding = res.apparent_encoding
@@ -78,25 +82,29 @@ for d in range(1, td.days):
         # 全ての<div>...</div>を取得
         race_str = soup.find_all("div", attrs={"class", "headding03"})
 
+# 直展リンク作成
+        tyokuten_url = []
+        # データシートページのリンクを取得
+        elems = soup.select('a')
+        for elem in elems:
+            if elem.getText() == "直前":
+                tmp = elem.get('href')
+                tmp = tmp.replace('../', '')
+                tyokuten_url.append(CNST_URL + tmp)
+
+
         ridx = 0 # 競馬ラボ結果URLレース番号用
         hoge = 0
+        tyoku_idx = 0
         for dmy in tables:
             rows = ptbl.parse_table(dmy)
             if not rows[0]:
                 continue
             df2 = pd.DataFrame(rows[1:], columns=rows[0])
-            #print(course[hoge].text)
-            # レース情報をDataFrameに追加
-            #df2['レース情報'] = course[hoge].text
-            #print(head3[hoge].text)
-            # レース情報に含まれる全角スペースを基準にして分割する
-            #   0              1                  2            3
-            #['中山1R', '３歳未勝利３歳(馬齢)', 'ダ1200ｍ', '10:10発走']
-            # 1と3は不要
-            # 0は会場名とレース番号を分ける
-            # 2はコースと距離を分ける
+
             race_tmp = re.split('　', race_str[hoge].text)
             print(race_tmp)
+
 
             # 東京と1R分割
             tmpstr = race_tmp[0]
@@ -105,7 +113,10 @@ for d in range(1, td.days):
 
             tmpstr = race_tmp[2]
             course = tmpstr[:1]
-            distance = tmpstr[1:-1]
+            #distance = tmpstr[1:-1]
+            ##########################################
+            distance = re.findall('[0-9]{4}', tmpstr)
+            distance = distance[0]
 
             df2['日付'] = yyyymmdd
 
@@ -130,7 +141,7 @@ for d in range(1, td.days):
             cols = ['日付']+ [col for col in df2 if col != '日付']
             df2 = df2[cols]
 
-            df2[''] = ''
+            #df2[''] = ''
             df2['先行力順位'] = df2["先行力"].rank(ascending=False, method='min')
             df2['追走力順位'] = df2["追走力"].rank(ascending=False, method='min')
             df2['持久力順位'] = df2["持久力"].rank(ascending=False, method='min')
@@ -138,6 +149,26 @@ for d in range(1, td.days):
             df2['瞬発力順位'] = df2["瞬発力"].rank(ascending=False, method='min')
             df2['ＳＴ指数順位'] = df2["ＳＴ指数"].rank(ascending=False, method='min')
             df2['仕上指数順位'] = df2["仕上指数"].rank(ascending=False, method='min')
+
+################################################################################
+# 直前ファクター取得
+            #print("直展:{}".format(tyokuten_url[tyoku_idx]))
+            #print("前{}".format(df2.shape))
+            #print(df2.head())
+            t_df = getyoku.get_tyokuten(tyokuten_url[tyoku_idx])
+
+            if len(t_df) == 0:
+                hoge += 3
+                ridx += 1
+                tyoku_idx += 1
+                continue
+
+            # データシートと重複する列を除外する
+            t_df = t_df.drop(["馬番", "馬名", "騎手名", "ST指数", "仕上指数"], axis=1)
+            # データシートのDFと直前展開のDFを結合
+            df2 = pd.merge(df2, t_df, right_index=True, left_index=True)
+            #print("後{}".format(df2.shape))
+################################################################################
 
             #print('****ラボデータ取得開始')
             #####################################
@@ -148,16 +179,12 @@ for d in range(1, td.days):
             else:
                 race_num_str = str(ridx + 1) #ridx 9~11 = 10~12
 
-            # 競馬場名抽出 → 競馬ラボ会場Noへ変換
-            #course = df2['レース情報'].loc[0]     # 競馬場名抽出 (先頭データより判定)
-            #print(df2['レース情報'].loc[0])
-            #course = course[0:2]                    # ↑(左から2文字抽出)
             course = df2['会場'].loc[0]
 
             course_no = klabtbl.keibaLab_CourseTables(course)
             # 会場IDを数字で戻すようにしたためここで数字→文字列に変換して2桁表示
             course_no = str(course_no + 1).zfill(2)
-            print("  会場 = {}, 会場ID = {}".format(course, course_no))
+            #print("  会場 = {}, 会場ID = {}".format(course, course_no))
 
             # 競馬ラボURL作成
             url = CNST_LABURL + yyyymmdd + course_no + race_num_str + "/"
@@ -170,8 +197,6 @@ for d in range(1, td.days):
             rows = ptbl.parse_table(lab_tables[0])
             # 列名だけのDataFrameを作成
             tmp = rows[0]
-            # パースしたtableデータの列タイトルが、オメガ指数（笑）のせいで他の要素よりも長い。
-            # データ長を合わせないとエラーになるので、0～15の範囲でデータを作成する。
             df = pd.DataFrame(index=[], columns=tmp[0:15])
             # 行追加
             # タイトル行以外のデータをコピー
@@ -185,12 +210,8 @@ for d in range(1, td.days):
             # 単勝の列データを値で取得
             odds_v = df['単勝'].values
             tmp = ",".join(odds_v)
-            # 改行の削除
             tmp = tmp.replace('\n','')
-            # tabの削除
             tmp = tmp.replace('\t','')
-            # なんでオッズの所に改行コードとか仕込んでるんだろう？
-            # 競馬ラボクソだわﾀﾋね！
             odds_new = tmp.split(",")
             # DataFrameへ書き戻し
             lp = 0
@@ -199,34 +220,29 @@ for d in range(1, td.days):
                 lp += 1
             # 必要そうなデータだけを抽出
             df = df[['着', '馬', '人', '単勝']]
-            # ソートしたいのでstrをint8に変換
-            #df['馬'] = df['馬'].astype('int8')
-            #print(type(df.loc[0,'馬']))
-            #print(df.sort_values(by='馬'))
-            #df['馬'] = df['馬'].zfill(2)
-            #print(df['馬'].astype(str).str.zfill(2))
             df['馬'] = df['馬'].astype(str).str.zfill(2)
             df = df.rename(columns={'馬': '馬番'})
-            #print(df)
-            #df3 = pd.concat([ df2, df[['着', '人', '単勝']] ], axis=1)
+
             df3 = pd.merge(df2, df, how='inner', on='馬番')
             #print(df3)
 
+##########################################################################
+# 障害データのドロップ
 
+##########################################################################
             if h_flg == 1:
                 #print("ヘッダーなし")
-                #df2.to_csv(csvfile, encoding="shift_jis", header=False, index=False, mode="a")
                 df3.to_csv(csvfile, encoding="shift_jis", header=False, index=False, mode="a")
                 # CSV ファイル (employee.csv) として出力（追記モード）
             else:
                 #print("ヘッダーあり")
                 # hoge == 0の時だけヘッダー出力
-                #df2.to_csv(csvfile, encoding="shift_jis", index=False, mode="a")
                 df3.to_csv(csvfile, encoding="shift_jis", index=False, mode="a")
                 h_flg = 1
 
             hoge += 3
             ridx += 1
-
+            tyoku_idx += 1
+        #sys.exit()
 
 input("Enterで終了")
