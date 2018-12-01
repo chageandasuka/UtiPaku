@@ -26,6 +26,7 @@ class DataGenerator:
         self.myurl_idpm = re.findall('\.html.+', self.myurl) # idp=***
 
         self.wel = ['E', 'W', 'L']
+        self.kaijou = []
         self.chara_url = []
         self.tyokuten_url = []
 
@@ -53,6 +54,10 @@ class DataGenerator:
             content = res.text
             soup = BeautifulSoup(content, 'lxml')
 
+            race_str = soup.find_all("div", attrs={"class", "headding04"})
+            race_str_text = race_str[0].text
+            self.kaijou.append(race_str_text[2:4])
+
             tmp_tyokuten_url = []
             # データシートページのリンクを取得
             elems = soup.select('a')
@@ -77,7 +82,7 @@ def main():
             print("会場{}-{}R\rデータシート：{}\r展開予想(直前)：{}".format(loader.wel[i], j+1, chara_url, tyokuten_url))
 
             # バッチファイル名生成（例：20181201E_01R.bat
-            bat_fname = "{}{}_{}R.bat".format(loader.myurl_race_day[0], loader.wel[i], str(j+1).zfill(2))
+            bat_fname = "{}{}_{}R.bat".format(loader.myurl_race_day[0], loader.kaijou[i], str(j+1).zfill(2))
 
             with codecs.open(bat_fname, 'w', 'shift_jis') as f:
                 batheader = "cd /d %~dp0\n"
