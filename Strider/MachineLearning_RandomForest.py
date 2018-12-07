@@ -12,7 +12,7 @@ from u_def import JockeyTable as jtbl   # 騎手名→勝率変換用関数
 
 
 # 事前/直前ファクター切替 (0：事前, 1：直前)
-sw_Tyokuten = 1
+sw_Tyokuten = 0
 
 if sw_Tyokuten == 0:
 
@@ -97,13 +97,50 @@ depth_set = 15
 # 森の数設定
 n_estimators_set = 100
 
-# ランダムフォレスト準備
-rf1 = RandomForestRegressor( n_estimators = n_estimators_set, max_depth = depth_set )
+# 乱数ジェネレータによって使用されるシード
+# 本パラメータにて結果を固定できる
+# random_state_set = 1                                     # 1位的中33.8%：オッズ閾値2.5倍：想定回収117% 採用
+# random_state_set = 1                                     # 1位的中35.7%：オッズ閾値3.0倍：想定回収128% 採用
+# random_state_set = 3                                     # 1位的中31.0%：オッズ閾値2.5倍：想定回収118% 採用
+# random_state_set = 3                                     # 1位的中31.6%：オッズ閾値3.0倍：想定回収126% 採用
+# random_state_set = 5                                     # 不採用
+# random_state_set = 7                                     # 1位的中31.5%：オッズ閾値2.5倍：想定回収111%
+# random_state_set = 7                                     # 1位的中35.2%：オッズ閾値3.0倍：想定回収118%
+# random_state_set = 11                                    # 1位的中30.9%：オッズ閾値2.5倍：想定回収114%
+# random_state_set = 11                                    # 1位的中29.3%：オッズ閾値3.0倍：想定回収116%
+# random_state_set = 13                                    # 1位的中29.0%：オッズ閾値2.5倍：想定回収111% 微妙？
+# random_state_set = 13                                    # 1位的中26.0%：オッズ閾値3.0倍：想定回収111% 微妙？
+# random_state_set = 17                                    # 1位的中31.8%：オッズ閾値2.5倍：想定回収110%
+# random_state_set = 17                                    # 1位的中32.6%：オッズ閾値3.0倍：想定回収120%
+# random_state_set = 19                                    # 不採用
+# random_state_set = 23                                    # 1位的中33.3%：オッズ閾値2.5倍：想定回収124% 採用
+# random_state_set = 23                                    # 1位的中32.7%：オッズ閾値3.0倍：想定回収131% 採用
+# random_state_set = 29                                    # 1位的中33.3%：オッズ閾値2.5倍：想定回収124% 採用
+# random_state_set = 29                                    # 1位的中31.4%：オッズ閾値3.0倍：想定回収127% 採用
+# random_state_set = 31                                    # 1位的中34.8%：オッズ閾値2.5倍：想定回収120% 採用
+# random_state_set = 31                                    # 1位的中32.7%：オッズ閾値3.0倍：想定回収121% 採用
+# random_state_set = 37                                    # 不採用
+# random_state_set = 41                                    # 不採用
+# random_state_set = 43                                    # 1位的中33.3%：オッズ閾値2.5倍：想定回収122% 採用
+# random_state_set = 43                                    # 1位的中32.7%：オッズ閾値3.0倍：想定回収127% 採用
+# random_state_set = 47                                    # 不採用
+# ※上記データは学習期間18/3/10～18/8/26、予測期間18/9/1～18/12/02にて算出
+
+
 
 print("学習1回目")
 ########################################################################################
 # 学習1回目
 ########################################################################################
+# 乱数ジェネレータによって使用されるシード
+# 本パラメータにて結果を固定できる
+random_state_set = 1
+# ランダムフォレスト準備
+rf1 = RandomForestRegressor( n_estimators = n_estimators_set
+                             ,max_depth = depth_set
+                             ,random_state = random_state_set
+                           )
+
 # ランダムフォレスト学習
 rf1.fit( data_x, data_y )
 
@@ -119,6 +156,15 @@ print("学習2回目")
 ########################################################################################
 # 学習2回目
 ########################################################################################
+# 乱数ジェネレータによって使用されるシード
+# 本パラメータにて結果を固定できる
+random_state_set = 3
+# ランダムフォレスト準備
+rf1 = RandomForestRegressor( n_estimators = n_estimators_set
+                             ,max_depth = depth_set
+                             ,random_state = random_state_set
+                           )
+
 # ランダムフォレスト学習
 rf1.fit( data_x, data_y )
 
@@ -134,6 +180,15 @@ print("学習3回目")
 ########################################################################################
 # 学習3回目
 ########################################################################################
+# 乱数ジェネレータによって使用されるシード
+# 本パラメータにて結果を固定できる
+random_state_set = 23
+# ランダムフォレスト準備
+rf1 = RandomForestRegressor( n_estimators = n_estimators_set
+                             ,max_depth = depth_set
+                             ,random_state = random_state_set
+                           )
+
 # ランダムフォレスト学習
 rf1.fit( data_x, data_y )
 
@@ -150,6 +205,15 @@ print("学習4回目")
 ########################################################################################
 # 学習4回目
 ########################################################################################
+# 乱数ジェネレータによって使用されるシード
+# 本パラメータにて結果を固定できる
+random_state_set = 29
+# ランダムフォレスト準備
+rf1 = RandomForestRegressor( n_estimators = n_estimators_set
+                             ,max_depth = depth_set
+                             ,random_state = random_state_set
+                           )
+
 # ランダムフォレスト学習
 rf1.fit( data_x, data_y )
 
@@ -166,6 +230,15 @@ print("学習5回目")
 ########################################################################################
 # 学習5回目
 ########################################################################################
+# 乱数ジェネレータによって使用されるシード
+# 本パラメータにて結果を固定できる
+random_state_set = 31
+# ランダムフォレスト準備
+rf1 = RandomForestRegressor( n_estimators = n_estimators_set
+                             ,max_depth = depth_set
+                             ,random_state = random_state_set
+                           )
+
 # ランダムフォレスト学習
 rf1.fit( data_x, data_y )
 
@@ -178,6 +251,31 @@ result1 = rf1.predict( test_X )
 test_DataFrame['R予想5'] = result1
 
 
+print("学習6回目")
+########################################################################################
+# 学習6回目
+########################################################################################
+# 乱数ジェネレータによって使用されるシード
+# 本パラメータにて結果を固定できる
+random_state_set = 43
+# ランダムフォレスト準備
+rf1 = RandomForestRegressor( n_estimators = n_estimators_set
+                             ,max_depth = depth_set
+                             ,random_state = random_state_set
+                           )
+
+# ランダムフォレスト学習
+rf1.fit( data_x, data_y )
+
+# ランダムフォレスト予想
+test_X = test_DataFrame[ factor_list01 ]
+test_X = jtbl.JockeyTable(test_X)            # 騎手名 → 勝率変換
+result1 = rf1.predict( test_X )
+
+# CSVファイルへ結果出力
+test_DataFrame['R予想6'] = result1
+
+
 
 # 評価補助用マスク処理
 # ◎は1に、〇は2に、△は3に、それ以下は4に置換
@@ -188,23 +286,40 @@ test_DataFrame['R予想5'] = result1
 test_DataFrame['R予想1(Mask)'] = test_DataFrame.apply( lambda x: 1 if float( x['R予想1'] ) < 3
                                                             else 2 if float( x['R予想1'] ) < 4
                                                             else 3 if float( x['R予想1'] ) < 5
-                                                            else 4, axis=1 )
+                                                            else 4 if float( x['R予想1'] ) < 6
+                                                            else 5, axis=1 )
 test_DataFrame['R予想2(Mask)'] = test_DataFrame.apply( lambda x: 1 if float( x['R予想2'] ) < 3
                                                             else 2 if float( x['R予想2'] ) < 4
                                                             else 3 if float( x['R予想2'] ) < 5
-                                                            else 4, axis=1 )
+                                                            else 4 if float( x['R予想2'] ) < 6
+                                                            else 5, axis=1 )
 test_DataFrame['R予想3(Mask)'] = test_DataFrame.apply( lambda x: 1 if float( x['R予想3'] ) < 3
                                                             else 2 if float( x['R予想3'] ) < 4
                                                             else 3 if float( x['R予想3'] ) < 5
-                                                            else 4, axis=1 )
+                                                            else 4 if float( x['R予想3'] ) < 6
+                                                            else 5, axis=1 )
 test_DataFrame['R予想4(Mask)'] = test_DataFrame.apply( lambda x: 1 if float( x['R予想4'] ) < 3
                                                             else 2 if float( x['R予想4'] ) < 4
                                                             else 3 if float( x['R予想4'] ) < 5
-                                                            else 4, axis=1 )
+                                                            else 4 if float( x['R予想4'] ) < 6
+                                                            else 5, axis=1 )
 test_DataFrame['R予想5(Mask)'] = test_DataFrame.apply( lambda x: 1 if float( x['R予想5'] ) < 3
                                                             else 2 if float( x['R予想5'] ) < 4
                                                             else 3 if float( x['R予想5'] ) < 5
-                                                            else 4, axis=1 )
+                                                            else 4 if float( x['R予想5'] ) < 6
+                                                            else 5, axis=1 )
+test_DataFrame['R予想6(Mask)'] = test_DataFrame.apply( lambda x: 1 if float( x['R予想6'] ) < 3
+                                                            else 2 if float( x['R予想6'] ) < 4
+                                                            else 3 if float( x['R予想6'] ) < 5
+                                                            else 4 if float( x['R予想6'] ) < 6
+                                                            else 5, axis=1 )
+test_DataFrame['平均(R-Mask)'] = test_DataFrame.apply( lambda x: ( ( float( x['R予想1(Mask)'] )
+                                                                   + float( x['R予想2(Mask)'] )
+                                                                   + float( x['R予想3(Mask)'] )
+                                                                   + float( x['R予想4(Mask)'] )
+                                                                   + float( x['R予想5(Mask)'] )
+                                                                   + float( x['R予想6(Mask)'] ) ) / 6 )
+                                                                   , axis=1 )
 
 
 print("CSV出力")
