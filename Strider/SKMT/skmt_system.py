@@ -17,7 +17,7 @@ print(df.shape)
 for r in range(0, len(df)):
     if SW_H_HIST == 1:
         comand = "python skmt_core.py -a lgbm -t race_train.csv -i horse_history.csv -m \"{}\" -r \"{}\"".format(df[0][r], df[1][r])
-    elif:
+    else:
         comand = "python skmt_core.py -a lgbm -t race_train.csv -m \"{}\" -r \"{}\"".format(df[0][r], df[1][r])
 
     print(comand)
