@@ -17,6 +17,7 @@ from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.svm import SVR
+import pickle as P
 
 
 parser = argparse.ArgumentParser(description='LambdaRank example: Prefigure horse rase')
@@ -63,22 +64,30 @@ else:
 
 df_history = pd.DataFrame()
 if len(history_file) > 0 and os.path.isfile(history_file):
-	X = pd.read_csv(history_file, index_col=0, header=None, encoding="shift-jis")
-	use_history = True
-	pca = PCA(n_components=10)
-	pca_X = pd.DataFrame(pca.fit_transform(X), index=X.index, columns=['pca%d'%i for i in range(10)])
-	tsvd = TruncatedSVD(n_components=10)
-	tsvd_X = pd.DataFrame(tsvd.fit_transform(X), index=X.index, columns=['tsvd%d'%i for i in range(10)])
-	grp = GaussianRandomProjection(n_components=10, eps=0.1)
-	grp_X = pd.DataFrame(grp.fit_transform(X), index=X.index, columns=['grp%d'%i for i in range(10)])
-	srp = SparseRandomProjection(n_components=10, dense_output=True)
-	srp_X = pd.DataFrame(srp.fit_transform(X), index=X.index, columns=['srp%d'%i for i in range(10)])
-	df_history = X.join([pca_X, tsvd_X, grp_X, srp_X]) #元のデータにマージ
-	#df_history = X #元のデータ
-	#df_history = pca_X
-	#df_history = df_history.join([tsvd_X, grp_X, srp_X])
 
-	del pca, tsvd, grp, srp, pca_X, tsvd_X, grp_X, srp_X
+	use_history = True
+	if not os.path.isfile('history.pickle'):
+		# 実行時間 約140[sec]
+		X = pd.read_csv(history_file, index_col=0, header=None, encoding="shift-jis")
+		pca = PCA(n_components=10)
+		pca_X = pd.DataFrame(pca.fit_transform(X), index=X.index, columns=['pca%d'%i for i in range(10)])
+		tsvd = TruncatedSVD(n_components=10)
+		tsvd_X = pd.DataFrame(tsvd.fit_transform(X), index=X.index, columns=['tsvd%d'%i for i in range(10)])
+		grp = GaussianRandomProjection(n_components=10, eps=0.1)
+		grp_X = pd.DataFrame(grp.fit_transform(X), index=X.index, columns=['grp%d'%i for i in range(10)])
+		srp = SparseRandomProjection(n_components=10, dense_output=True)
+		srp_X = pd.DataFrame(srp.fit_transform(X), index=X.index, columns=['srp%d'%i for i in range(10)])
+		df_history = X.join([pca_X, tsvd_X, grp_X, srp_X]) #元のデータにマージ
+
+		del pca, tsvd, grp, srp, pca_X, tsvd_X, grp_X, srp_X
+
+		with open('history.pickle', 'wb') as f:
+			P.dump(df_history, f)
+
+	else:
+		# 実行時間 約8[sec]
+		with open('history.pickle', 'rb') as f:
+			df_history = P.load(f)
 
 def norm_racedata(data, query):
 	cur_pos = 0
@@ -485,7 +494,7 @@ def main_emsemble():
 
 			for j,i in zip(range(len(order)),order):
 				df_outfile.write('%d着予想：%s\t%s\n'%(j+1,horse[i],str(predict_validation_result[i])))
-				rslt = "{}\t{}\n".format(horse[i], j+1)
+				rslt = "{}\t{}\n".format(horse[i], j+1, str(predict_validation_result[i]))
 				csvfile.write(rslt)
 
 if __name__ == '__main__':
