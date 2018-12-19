@@ -39,6 +39,8 @@ parser.add_argument('--horses', '-o', type=int, default=80001,
 					help='Max number of horses')
 parser.add_argument('--algorizm', '-a', default='xgb',
 					help='Algorizm (xgb|lgbm|ensemble)')
+parser.add_argument('--clf', '-c', default='1',
+					help='Use classifier(1:Use|0:Not use)')
 args = parser.parse_args()
 
 train_src = args.train
@@ -50,6 +52,7 @@ num_gates = args.num
 max_position = args.position
 max_horses = args.horses
 use_algorizm = args.algorizm
+use_clf = args.clf
 use_history = False
 
 if use_algorizm=='xgb':
@@ -65,29 +68,21 @@ else:
 df_history = pd.DataFrame()
 if len(history_file) > 0 and os.path.isfile(history_file):
 
+	X = pd.read_csv(history_file, index_col=0, header=None, encoding="shift-jis")
 	use_history = True
-	if not os.path.isfile('history.pickle'):
-		# 実行時間 約140[sec]
-		X = pd.read_csv(history_file, index_col=0, header=None, encoding="shift-jis")
-		pca = PCA(n_components=10)
-		pca_X = pd.DataFrame(pca.fit_transform(X), index=X.index, columns=['pca%d'%i for i in range(10)])
-		tsvd = TruncatedSVD(n_components=10)
-		tsvd_X = pd.DataFrame(tsvd.fit_transform(X), index=X.index, columns=['tsvd%d'%i for i in range(10)])
-		grp = GaussianRandomProjection(n_components=10, eps=0.1)
-		grp_X = pd.DataFrame(grp.fit_transform(X), index=X.index, columns=['grp%d'%i for i in range(10)])
-		srp = SparseRandomProjection(n_components=10, dense_output=True)
-		srp_X = pd.DataFrame(srp.fit_transform(X), index=X.index, columns=['srp%d'%i for i in range(10)])
-		df_history = X.join([pca_X, tsvd_X, grp_X, srp_X]) #元のデータにマージ
+	pca = PCA(n_components=10)
+	pca_X = pd.DataFrame(pca.fit_transform(X), index=X.index, columns=['pca%d'%i for i in range(10)])
+	tsvd = TruncatedSVD(n_components=10)
+	tsvd_X = pd.DataFrame(tsvd.fit_transform(X), index=X.index, columns=['tsvd%d'%i for i in range(10)])
+	grp = GaussianRandomProjection(n_components=10, eps=0.1)
+	grp_X = pd.DataFrame(grp.fit_transform(X), index=X.index, columns=['grp%d'%i for i in range(10)])
+	srp = SparseRandomProjection(n_components=10, dense_output=True)
+	srp_X = pd.DataFrame(srp.fit_transform(X), index=X.index, columns=['srp%d'%i for i in range(10)])
+	df_history = X.join([pca_X, tsvd_X, grp_X, srp_X]) #元のデータにマージ
 
-		del pca, tsvd, grp, srp, pca_X, tsvd_X, grp_X, srp_X
+	# df_historyをdumpして、次回以降読み込むようにしたら早くならない？
 
-		with open('history.pickle', 'wb') as f:
-			P.dump(df_history, f)
-
-	else:
-		# 実行時間 約8[sec]
-		with open('history.pickle', 'rb') as f:
-			df_history = P.load(f)
+	del pca, tsvd, grp, srp, pca_X, tsvd_X, grp_X, srp_X
 
 def norm_racedata(data, query):
 	cur_pos = 0
@@ -352,49 +347,68 @@ def main_xgb(fold_offset):
 			for dst_ind in range(len(dst)):
 				predict_validation_regression[dst_ind][fold_offset+fold_id] = dst[dst_ind]
 
+from sklearn.externals import joblib
+
+if use_clf == '1':
+	# default = 1のため、分類器作成済みか確認。
+	# 未作成(分類器存在しない)ならuse_clf = 0に上書き。
+	if os.path.exists('./skmt01.pkl.cmp'):
+		print("分類器は存在した！")
+		pass
+	else:
+		use_clf = '0'
+
 def main_lgbm(fold_offset):
-
+	cnt = 0
 	for fold_id, (train_index, test_index) in enumerate(KFold(n_splits=10).split(all_races_train)):
-		all_races_train_train = all_races_train[train_index]
-		all_races_train_valid = all_races_train[test_index]
-		all_races_rank_train_train = []
-		all_races_query_train_train = []
-		all_races_target_train_train = []
-		all_races_rank_train_valid = []
-		all_races_query_train_valid = []
-		all_races_target_train_valid = []
-		get_race_gets(all_races_train_train, all_races_rank_train_train, all_races_query_train_train, all_races_target_train_train)
-		get_race_gets(all_races_train_valid, all_races_rank_train_valid, all_races_query_train_valid, all_races_target_train_valid)
-		all_races_rank_train_train = np.array(all_races_rank_train_train)
-		all_races_query_train_train = np.array(all_races_query_train_train)
-		all_races_target_train_train = np.array(all_races_target_train_train)
-		all_races_rank_train_valid = np.array(all_races_rank_train_valid)
-		all_races_query_train_valid = np.array(all_races_query_train_valid)
-		all_races_target_train_valid = np.array(all_races_target_train_valid)
+		cnt += 1
+		if use_clf == '0':
+			all_races_train_train = all_races_train[train_index]
+			all_races_train_valid = all_races_train[test_index]
+			all_races_rank_train_train = []
+			all_races_query_train_train = []
+			all_races_target_train_train = []
+			all_races_rank_train_valid = []
+			all_races_query_train_valid = []
+			all_races_target_train_valid = []
+			get_race_gets(all_races_train_train, all_races_rank_train_train, all_races_query_train_train, all_races_target_train_train)
+			get_race_gets(all_races_train_valid, all_races_rank_train_valid, all_races_query_train_valid, all_races_target_train_valid)
+			all_races_rank_train_train = np.array(all_races_rank_train_train)
+			all_races_query_train_train = np.array(all_races_query_train_train)
+			all_races_target_train_train = np.array(all_races_target_train_train)
+			all_races_rank_train_valid = np.array(all_races_rank_train_valid)
+			all_races_query_train_valid = np.array(all_races_query_train_valid)
+			all_races_target_train_valid = np.array(all_races_target_train_valid)
 
-		lgbm_params =  {
-			'task': 'train',
-			'boosting_type': 'gbdt',
-			'objective': 'lambdarank',
-			'metric': 'ndcg',   # for lambdarank
-			'ndcg_eval_at': [1,2,3],  # for lambdarank
-			'max_position': max_position,  # for lambdarank
-			'learning_rate': 1e-8,
-			'min_data': 1,
-			'min_data_in_bin': 1,
-		}
-		lgtrain = lgb.Dataset(all_races_rank_train_train, all_races_target_train_train, categorical_feature=[0,1,2,3,4,7]+list(range(8,23)), group=all_races_query_train_train)
-		lgvalid = lgb.Dataset(all_races_rank_train_valid, all_races_target_train_valid, categorical_feature=[0,1,2,3,4,7]+list(range(8,23)), group=all_races_query_train_valid)
-		lgb_clf = lgb.train(
-			lgbm_params,
-			lgtrain,
-			categorical_feature=[0,1,2,3,4]+list(range(6,21)),
-			num_boost_round=10,
-			valid_sets=[lgtrain, lgvalid],
-			valid_names=['train','valid'],
-			early_stopping_rounds=2,
-			verbose_eval=1
-		)
+			lgbm_params =  {
+				'task': 'train',
+				'boosting_type': 'gbdt',
+				'objective': 'lambdarank',
+				'metric': 'ndcg',   # for lambdarank
+				'ndcg_eval_at': [1,2,3],  # for lambdarank
+				'max_position': max_position,  # for lambdarank
+				'learning_rate': 1e-8,
+				'min_data': 1,
+				'min_data_in_bin': 1,
+			}
+			lgtrain = lgb.Dataset(all_races_rank_train_train, all_races_target_train_train, categorical_feature=[0,1,2,3,4,7]+list(range(8,23)), group=all_races_query_train_train)
+			lgvalid = lgb.Dataset(all_races_rank_train_valid, all_races_target_train_valid, categorical_feature=[0,1,2,3,4,7]+list(range(8,23)), group=all_races_query_train_valid)
+			lgb_clf = lgb.train(
+				lgbm_params,
+				lgtrain,
+				categorical_feature=[0,1,2,3,4]+list(range(6,21)),
+				num_boost_round=10,
+				valid_sets=[lgtrain, lgvalid],
+				valid_names=['train','valid'],
+				early_stopping_rounds=2,
+				verbose_eval=1
+			)
+
+			pkl_name = 'skmt' + str(cnt).zfill(2) + '.pkl.cmp'
+			joblib.dump(lgb_clf, pkl_name, compress=True)
+		else:
+			pkl_name = 'skmt' + str(cnt).zfill(2) + '.pkl.cmp'
+			lgb_clf = joblib.load(pkl_name)
 
 		if len(test_src) > 0:
 			dst = norm_racedata(lgb_clf.predict(all_races_rank_test), all_races_query_test)
@@ -402,7 +416,9 @@ def main_lgbm(fold_offset):
 				test_validation_regression[dst_ind][fold_offset+fold_id] = dst[dst_ind]
 			cur_pos = 0
 		if len(in_data)!=0 and len(in_meta)!=0:
-			dst = norm_racedata(lgb_clf.predict(predict_races_target), [len(predict_races_target)])
+			pre = lgb_clf.predict(predict_races_target)
+			dst = norm_racedata(pre, [len(predict_races_target)])
+			#dst = norm_racedata(lgb_clf.predict(predict_races_target), [len(predict_races_target)])
 			for dst_ind in range(len(dst)):
 				predict_validation_regression[dst_ind][fold_offset+fold_id] = dst[dst_ind]
 
@@ -494,11 +510,11 @@ def main_emsemble():
 
 			for j,i in zip(range(len(order)),order):
 				df_outfile.write('%d着予想：%s\t%s\n'%(j+1,horse[i],str(predict_validation_result[i])))
-				rslt = "{}\t{}\t{}\n".format(horse[i], j+1, str(predict_validation_result[i]))
+				rslt = "{}\t{}\n".format(horse[i], j+1)
 				csvfile.write(rslt)
 
 if __name__ == '__main__':
-	sys.stdout.write("######## 予測開始 ########\r")
+	print("######## 予測開始 by skmt_core ########")
 	if use_algorizm=='xgb':
 		 main_xgb(0)
 	elif use_algorizm=='lgbm':
