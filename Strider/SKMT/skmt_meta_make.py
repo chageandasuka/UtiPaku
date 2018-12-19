@@ -398,7 +398,7 @@ if __name__ == "__main__":
                 #print(horses_name)
                 #print(jks_name)
 
-            with open('meta_list.txt', 'w', newline='') as wf:
+            with open('meta_list.txt', 'a', newline='') as wf:
                 csvwriter = csv.writer(wf, quoting=csv.QUOTE_MINIMAL)
                 hrjk = []
                 for i, horse in enumerate(horses_name):
