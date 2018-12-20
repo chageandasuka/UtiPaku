@@ -510,7 +510,7 @@ def main_emsemble():
 
 			for j,i in zip(range(len(order)),order):
 				df_outfile.write('%d着予想：%s\t%s\n'%(j+1,horse[i],str(predict_validation_result[i])))
-				rslt = "{}\t{}\n".format(horse[i], j+1)
+				rslt = "{}\t{}\t{}\n".format(horse[i], j+1, str(predict_validation_result[i]))
 				csvfile.write(rslt)
 
 if __name__ == '__main__':
