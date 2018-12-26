@@ -21,17 +21,26 @@ def parse_table(table):
     # tbody 要素を取得
     tbody = table.find("tbody")
     
-    # tr 要素を取得
-    trs = tbody.find_all("tr")
-
-    # 出力したい行データ
-    rows = [columns]
-
-    # td (th) 要素の値を読み込む
-    # tbody -- tr 直下に th が存在するパターンがあるので
-    # find_all(["td", "th"]) とするのがコツ
-    for tr in trs:
-        row = [td.text for td in tr.find_all(["td", "th"])]
+    # tbody が存在する場合
+    if tbody:
+        # tr 要素を取得
+        trs = tbody.find_all("tr")
+        
+        # 出力したい行データ
+        rows = [columns]
+        
+        # td (th) 要素の値を読み込む
+        # tbody -- tr 直下に th が存在するパターンがあるので
+        # find_all(["td", "th"]) とするのがコツ
+        for tr in trs:
+            row = [td.text for td in tr.find_all(["td", "th"])]
+            rows.append(row)
+            
+    # tbody が存在しない場合
+    else:
+        # 競馬ラボ 払い戻し取得を想定
+        rows = []
+        row = [td.text for td in table.find_all(["td"])]
         rows.append(row)
 
     return rows
