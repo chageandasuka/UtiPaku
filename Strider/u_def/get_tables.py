@@ -9,5 +9,6 @@ def get_tables(content, is_talkative=True):
         emsg = "table not found."
         raise Exception(emsg)
     if is_talkative:
-        print("%d table tags found.." % n_tables)
+        pass
+        #print("%d table tags found.." % n_tables)
     return tables
